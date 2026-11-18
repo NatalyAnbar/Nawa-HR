@@ -16,4 +16,6 @@ urlpatterns = [
     path('invite/', views.InviteUserView.as_view(), name='invite'),
 
     path('accept_invite/', views.AcceptInviteView.as_view(), name='accept-invite'),
+
+    path('me/', views.MeView.as_view(), name='me'),
 ]

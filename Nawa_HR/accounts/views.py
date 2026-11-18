@@ -4,7 +4,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from . import emails
-from .serializers import AcceptInviteSerializer, InviteUserSerializer
+from .serializers import AcceptInviteSerializer, InviteUserSerializer, MeSerializer
 from .models import User
 
 
@@ -64,3 +64,22 @@ class AcceptInviteView(generics.GenericAPIView):
             {'detail': 'Your password has been set. You can now log in.'},
             status=status.HTTP_200_OK,
         )
+
+
+class MeView(generics.RetrieveUpdateAPIView):
+    """
+    Retrieve or partially update the authenticated user's profile.
+
+    Only GET and PATCH are allowed; PUT is disabled so clients aren't forced
+    to resend read-only fields (like email) or re-upload their profile photo
+    on every edit.
+    """
+
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = MeSerializer
+    # Disable PUT: email is read-only and photo shouldn't be re-uploaded on every edit
+    http_method_names = ["get", "patch", "head", "options"]
+
+    def get_object(self):
+        """Return the currently authenticated user instead of looking up by pk."""
+        return self.request.user

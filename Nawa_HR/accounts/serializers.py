@@ -6,6 +6,7 @@ from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
 
 from .models import User
+from . import photo_validators
 
 INVALID_INVITE_LINK = 'This invite link is invalid or has expired.'
 
@@ -93,3 +94,22 @@ class AcceptInviteSerializer(serializers.Serializer):
             raise serializers.ValidationError(INVALID_INVITE_LINK)
 
         return user
+
+
+class MeSerializer(serializers.ModelSerializer):
+    """
+    Serializer for retrieving and updating the authenticated user's profile.
+
+    Email and join date are read-only. Photo validation rules are inherited
+    automatically from the User model's ``photo`` field.
+    """
+
+    # Explicit allow_null lets users clear their existing profile photo via PATCH
+    photo = serializers.ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = User
+        fields = ["email", "first_name", "last_name", "photo", "date_joined"]
+        read_only_fields = ["date_joined", "email"]
+
+
