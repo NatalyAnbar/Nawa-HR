@@ -15,19 +15,16 @@ class InviteUserSerializer(serializers.ModelSerializer):
     """
     Input for HR to invite a new employee.
 
-    HR enters the employee's email and name. The account is created without
-    a usable password, so nobody can log in to it until the employee sets
-    a password from the invite link.
-
-    Validation only: the view creates the account.
+    HR enters the employee's email, name, and an optional profile photo.
     """
 
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name']
+        fields = ['email', 'first_name', 'last_name', 'photo']
         extra_kwargs = {
             'first_name': {'required': True, 'allow_blank': False},
             'last_name': {'required': True, 'allow_blank': False},
+            'last_name': {'required': False},
         }
 
     def validate_email(self, value):
@@ -103,9 +100,6 @@ class MeSerializer(serializers.ModelSerializer):
     Email and join date are read-only. Photo validation rules are inherited
     automatically from the User model's ``photo`` field.
     """
-
-    # Explicit allow_null lets users clear their existing profile photo via PATCH
-    photo = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = User
