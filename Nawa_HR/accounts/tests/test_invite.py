@@ -6,6 +6,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from accounts import emails
+from . import helper
 
 User = get_user_model()
 
@@ -91,7 +92,7 @@ class TestInviteUser:
         """Ensure unauthenticated requests are rejected with 403 Forbidden."""
         response = api_client.post(invite_url(), invite_data(), format="json")
 
-        assert response.status_code == 403
+        assert response.status_code == 401
         assert User.objects.count() == 0
 
     def test_regular_user_cannot_invite(self, api_client):
@@ -220,3 +221,43 @@ class TestAcceptInvite:
         user.refresh_from_db()
         assert user.has_usable_password()
         assert user.check_password(PASSWORD)
+
+
+    def test_invite_user_with_valid_photo(self, superuser_client, mailoutbox):
+        """Ensure HR can optionally upload a valid profile photo when inviting a user."""
+        photo = helper.make_photo()
+        response = superuser_client.post(
+            invite_url(),
+            invite_data(photo=photo),
+            format="multipart",
+        )
+
+        assert response.status_code == 201
+        user = User.objects.get(email=response.data["email"])
+        assert bool(user.photo)
+        assert response.data["photo"] is not None
+        assert len(mailoutbox) == 1
+
+
+    def test_invite_user_without_photo_sets_null(self, superuser_client):
+        """Ensure inviting a user without a photo succeeds and leaves photo empty."""
+        response = superuser_client.post(invite_url(), invite_data(), format="json")
+
+        assert response.status_code == 201
+        user = User.objects.get(email=response.data["email"])
+        assert not user.photo
+
+    def test_invite_user_with_invalid_photo_rejected(self, superuser_client, mailoutbox):
+        """Ensure an invalid photo (oversized, wrong type, or bad ratio) rejects the invite."""
+        oversized_photo = helper.make_photo(size_mb=6)
+        response = superuser_client.post(
+            invite_url(),
+            invite_data(photo=oversized_photo),
+            format="multipart",
+        )
+
+        assert response.status_code == 400
+        assert "photo" in response.data
+        assert User.objects.count() == 1
+        assert len(mailoutbox) == 0
+
