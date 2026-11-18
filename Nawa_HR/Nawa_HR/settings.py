@@ -82,6 +82,11 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+FRONTEND_URL = env('FRONTEND_URL')
+
+# Invite and reset links expire after 3 days
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24 * 3
+
 # Short-lived access tokens limit the damage if one leaks; the refresh
 # token keeps users logged in without asking for the password again.
 SIMPLE_JWT = {
@@ -95,6 +100,8 @@ SIMPLE_JWT = {
 
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
+
+DEFAULT_FROM_EMAIL = 'no-reply@hr.local'
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Nawa HR API',
