@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.db.models.functions import Lower
 from .manager import UserManager
+from . import photo_validators
 
 class User(AbstractUser):
     """
@@ -21,6 +22,10 @@ class User(AbstractUser):
     REQUIRED_FIELDS = []
 
     objects = UserManager()
+
+    # Optional profile photo; validated for file size, extension, and aspect ratio
+    photo = models.ImageField(upload_to="photos/", null=True, blank=True, 
+                              validators=photo_validators.PHOTO_VALIDATORS)
 
     def __str__(self):
         return self.email
