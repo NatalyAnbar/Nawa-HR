@@ -8,7 +8,7 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError('An email is required.')
         
-        email = self.normalize_email(email)
+        email = self.normalize_email(email).lower()
         user = self.model(email=email, **extra_fields) 
         # With no password this stores an unusable one, so an invited user can't log in yet
         user.set_password(password)
@@ -36,3 +36,8 @@ class UserManager(BaseUserManager):
             raise ValueError('A superuser must have is_staff=True and is_superuser=True.')
 
         return self._create_user(email,password,**extra_fields)
+
+
+    def get_by_natural_key(self, email):
+        # Emails are stored in lowercase, so match the login input the same way
+        return self.get(email=email.lower())
