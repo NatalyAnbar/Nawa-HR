@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db.models.functions import Lower
 from .manager import UserManager
 
 class User(AbstractUser):
@@ -23,4 +24,13 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                # Every write path must store emails in lowercase
+                condition=models.Q(email=Lower('email')),
+                name='user_email_lowercase'
+                )
+        ]
 
