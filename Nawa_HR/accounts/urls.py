@@ -18,4 +18,6 @@ urlpatterns = [
     path('accept_invite/', views.AcceptInviteView.as_view(), name='accept-invite'),
 
     path('me/', views.MeView.as_view(), name='me'),
+
+    path('change_password/', views.ChangePasswordView.as_view(), name='change-password')
 ]

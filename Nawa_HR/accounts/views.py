@@ -4,7 +4,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from . import emails
-from .serializers import AcceptInviteSerializer, InviteUserSerializer, MeSerializer
+from .serializers import AcceptInviteSerializer, InviteUserSerializer, MeSerializer, ChangePasswordSerializer
 from .models import User
 
 
@@ -82,4 +82,24 @@ class MeView(generics.RetrieveUpdateAPIView):
 
     def get_object(self):
         """Return the currently authenticated user instead of looking up by pk."""
+        return self.request.user
+
+
+class ChangePasswordView(generics.UpdateAPIView):
+    """
+    Allow an authenticated user to change their current password.
+
+    Only PUT is allowed; PATCH is disabled because partial updates would
+    make the password fields optional, whereas changing a password requires
+    sending all three fields together (old_password, new_password, and
+    confirm_new_password) as a single atomic replacement.
+    """
+
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    # Disable PATCH: changing a password is an all-or-nothing operation requiring all fields
+    http_method_names = ["put", "head", "options"]
+
+    def get_object(self):
+        """Return the currently authenticated user whose password is being changed."""
         return self.request.user
