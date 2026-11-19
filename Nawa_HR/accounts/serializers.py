@@ -4,9 +4,10 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
+from django.core.exceptions import ValidationError
 
 from .models import User
-from . import photo_validators
+
 
 INVALID_INVITE_LINK = 'This invite link is invalid or has expired.'
 
@@ -107,3 +108,54 @@ class MeSerializer(serializers.ModelSerializer):
         read_only_fields = ["date_joined", "email"]
 
 
+class ChangePasswordSerializer(serializers.Serializer):
+    """
+    Allow an authenticated user to change their current password.
+
+    Requires the current password for verification, along with the new password
+    and its confirmation. Validation runs in three stages:
+    1. Verify ``old_password`` against the user's stored password hash.
+    2. Validate ``new_password`` strength against Django's password validators.
+    3. Ensure ``new_password`` and ``confirm_new_password`` match.
+    """
+
+    old_password = serializers.CharField(
+        write_only=True,
+        style={"input_type": "password"},
+    )
+    new_password = serializers.CharField(
+        write_only=True,
+        style={"input_type": "password"},
+    )
+    confirm_new_password = serializers.CharField(
+        write_only=True,
+        style={"input_type": "password"},
+    )
+
+    def validate_old_password(self, value):
+        """Make sure the user changing the password knows the current one."""
+        if not self.instance.check_password(value):
+            raise serializers.ValidationError("The old password is incorrect.")
+        return value
+
+    def validate_new_password(self, value):
+        """Run Django's configured password strength validators against the user."""
+        try:
+            validate_password(value, self.instance)
+        except DjangoValidationError as error:
+            raise serializers.ValidationError(list(error.messages))
+        return value
+
+    def validate(self, attrs):
+        """Compare the two new password fields to ensure they match."""
+        if attrs["new_password"] != attrs["confirm_new_password"]:
+            raise serializers.ValidationError(
+                {"confirm_new_password": "The passwords do not match."}
+            )
+        return attrs
+
+    def update(self, instance, validated_data):
+        """Hash and store the new password in the database."""
+        instance.set_password(validated_data["new_password"])
+        instance.save(update_fields=["password"])
+        return instance
