@@ -4,7 +4,6 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
 from rest_framework import serializers
-from django.core.exceptions import ValidationError
 
 from .models import User
 
@@ -36,62 +35,79 @@ class InviteUserSerializer(serializers.ModelSerializer):
         return email
 
 
-class AcceptInviteSerializer(serializers.Serializer):
+INVALID_INVITE_LINK = "This invite link is invalid or has expired."
+INVALID_RESET_LINK = "This password reset link is invalid or has expired."
+
+
+class BasePasswordTokenSerializer(serializers.Serializer):
     """
-    Let an invited employee set their password from the invite link.
+    Base serializer for setting a password via a one-time uid + token link.
 
-    The link carries two values:
-
-    - ``uid``: the user's id, base64-encoded.
-    - ``token``: made by Django's ``default_token_generator``.
-
-    The token depends on the user's current password hash, so it stops
-    working as soon as the new password is saved. Each invite link can be
-    used only once, and it expires after ``PASSWORD_RESET_TIMEOUT``.
-
-    Validation only: on success, ``validated_data['user']`` holds the
-    invited user, and the view sets the password.
+    Subclasses only override ``invalid_link_message`` to provide context-specific
+    error feedback (invite vs. password reset).
     """
+
+    invalid_link_message = "This link is invalid or has expired."
 
     uid = serializers.CharField(write_only=True)
     token = serializers.CharField(write_only=True)
-    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    confirm_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(
+        write_only=True,
+        style={"input_type": "password"},
+    )
+    confirm_new_password = serializers.CharField(
+        write_only=True,
+        style={"input_type": "password"},
+    )
 
     def validate(self, attrs):
-        """Check the invite link first, then the new password."""
-        user = self._get_invited_user(attrs['uid'], attrs['token'])
+        """Verify the link token first, then validate and match the new password."""
+        user = self._get_user_from_link(attrs["uid"], attrs["token"])
 
-        if attrs['password'] != attrs['confirm_password']:
-            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+        if attrs["new_password"] != attrs["confirm_new_password"]:
+            raise serializers.ValidationError(
+                {"confirm_new_password": "Passwords do not match."}
+            )
 
         try:
-            validate_password(attrs['password'], user)
+            validate_password(attrs["new_password"], user)
         except DjangoValidationError as error:
-            raise serializers.ValidationError({'password': list(error.messages)})
+            raise serializers.ValidationError({"new_password": list(error.messages)})
 
-        attrs['user'] = user
+        attrs["user"] = user
         return attrs
 
-    @staticmethod
-    def _get_invited_user(uid, token):
-        """
-        Return the user the link belongs to.
-
-        Every problem (bad uid, unknown or disabled user, wrong or expired
-        token) raises the same error, so the response doesn't reveal which
-        part of the link was wrong.
-        """
+    def _get_user_from_link(self, uid, token):
+        """Decode uid, fetch the active user, and verify the one-time token."""
         try:
             user_id = force_str(urlsafe_base64_decode(uid))
             user = User.objects.get(pk=user_id, is_active=True)
-        except (TypeError, ValueError, OverflowError, DjangoValidationError, User.DoesNotExist):
+        except (
+            TypeError,
+            ValueError,
+            OverflowError,
+            DjangoValidationError,
+            User.DoesNotExist,
+        ):
             user = None
 
         if user is None or not default_token_generator.check_token(user, token):
-            raise serializers.ValidationError(INVALID_INVITE_LINK)
+            raise serializers.ValidationError(self.invalid_link_message)
 
         return user
+
+
+class AcceptInviteSerializer(BasePasswordTokenSerializer):
+    """Let an invited employee set their initial password from the invite link."""
+
+    invalid_link_message = INVALID_INVITE_LINK
+
+
+class ResetPasswordSerializer(BasePasswordTokenSerializer):
+    """Let a user set a new password from a password reset link."""
+
+    invalid_link_message = INVALID_RESET_LINK
+
 
 
 class MeSerializer(serializers.ModelSerializer):
@@ -159,3 +175,19 @@ class ChangePasswordSerializer(serializers.Serializer):
         instance.set_password(validated_data["new_password"])
         instance.save(update_fields=["password"])
         return instance
+
+
+class ForgetPasswordSerializer(serializers.Serializer):
+    """Validate the email address for a password reset request."""
+
+    email = serializers.EmailField(write_only=True)
+
+    def validate_email(self, value):
+        """Normalize the email to lowercase and ensure an active account exists."""
+        email = value.strip().lower()
+        if not User.objects.filter(email=email, is_active=True).exists():
+            raise serializers.ValidationError("No active account found with this email.")
+        return email
+
+
+
