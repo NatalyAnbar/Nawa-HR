@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 
 from pathlib import Path
 import environ
+from datetime import timedelta 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -28,7 +29,7 @@ environ.Env.read_env(BASE_DIR / '.env')
 SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DUBUG',default=False)
+DEBUG = env.bool('DEBUG',default=False)
 
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS',default=[])
 
@@ -46,6 +47,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'drf_spectacular',
 
     # HR Apps
     'accounts',
@@ -63,6 +68,57 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'Nawa_HR.urls'
 
+REST_FRAMEWORK = {
+    
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '1000/hour',
+        # Custom scope for the login view: low enough to stop password guessing.
+        'login': '5/minute',
+    },
+
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+FRONTEND_URL = env('FRONTEND_URL')
+
+# Invite and reset links expire after 3 days
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24 * 3
+
+# Short-lived access tokens limit the damage if one leaks; the refresh
+# token keeps users logged in without asking for the password again.
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+
+    # Every refresh returns a new refresh token...
+    'ROTATE_REFRESH_TOKENS': True,
+    # ...and the old one stops working, so a stolen token can only be used once.
+    'BLACKLIST_AFTER_ROTATION': True,
+
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+DEFAULT_FROM_EMAIL = 'no-reply@hr.local'
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Nawa HR API',
+    'DESCRIPTION': (
+        'HR API for Nawa: employees and job roles, leave requests with manager '
+        'approval, daily attendance and monthly payroll.'
+    ),
+    'VERSION': '0.1.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+}
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -77,6 +133,8 @@ TEMPLATES = [
         },
     },
 ]
+
+
 
 WSGI_APPLICATION = 'Nawa_HR.wsgi.application'
 
@@ -124,6 +182,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 
 # Email

@@ -1,1 +1,29 @@
+# Secrets
 .env
+
+# Virtual environments
+venv/
+venv*/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# Django
+staticfiles/
+media/
+*.sqlite3
+*.log
+
+# Tests and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
