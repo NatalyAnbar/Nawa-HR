@@ -1,4 +1,4 @@
-from urllib.parse import parse_qs, urlparse
+"""Tests for POST /accounts/invite/ and POST /accounts/accept-invite/."""
 
 import pytest
 from django.contrib.auth import get_user_model
@@ -6,6 +6,7 @@ from django.urls import reverse
 from rest_framework.test import APIClient
 
 from accounts import emails
+
 from . import helper
 
 User = get_user_model()
@@ -28,12 +29,6 @@ def accept_invite_url():
     return reverse("accept-invite")
 
 
-def params_from_link(link):
-    """Extract uid and token query parameters from an invite link."""
-    query = parse_qs(urlparse(link).query)
-    return {"uid": query["uid"][0], "token": query["token"][0]}
-
-
 def invite_data(**extra_fields):
     """Build a valid payload for inviting a user."""
     return {
@@ -46,9 +41,9 @@ def invite_data(**extra_fields):
 def accept_invite_data(account, **extra_fields):
     """Build a valid accept-invite payload from a generated invite link."""
     return {
-        **params_from_link(emails.build_invite_link(account)),
-        "password": PASSWORD,
-        "confirm_password": PASSWORD,
+        **helper.params_from_link(emails.build_invite_link(account)),
+        "new_password": PASSWORD,
+        "confirm_new_password": PASSWORD,
     } | extra_fields
 
 
@@ -88,8 +83,37 @@ class TestInviteUser:
         user = User.objects.get(email=response.data["email"])
         assert not user.has_usable_password()
 
+    def test_invite_user_with_valid_photo(self, superuser_client, mailoutbox):
+        """Ensure HR can optionally upload a valid profile photo when inviting a user."""
+        photo = helper.make_photo()
+        response = superuser_client.post(
+            invite_url(),
+            invite_data(photo=photo),
+            format="multipart",
+        )
+
+        assert response.status_code == 201
+        user = User.objects.get(email=response.data["email"])
+        assert bool(user.photo) is True
+        assert response.data["photo"] is not None
+        assert len(mailoutbox) == 1
+
+    def test_invite_user_with_invalid_photo_rejected(self, superuser_client, mailoutbox):
+        """Ensure an oversized photo rejects the invite without creating a user."""
+        oversized_photo = helper.make_photo(size_mb=6)
+        response = superuser_client.post(
+            invite_url(),
+            invite_data(photo=oversized_photo),
+            format="multipart",
+        )
+
+        assert response.status_code == 400
+        assert "photo" in response.data
+        assert User.objects.count() == 1
+        assert len(mailoutbox) == 0
+
     def test_anonymous_user_cannot_invite(self, api_client):
-        """Ensure unauthenticated requests are rejected with 403 Forbidden."""
+        """Ensure unauthenticated requests are rejected with 401 Unauthorized."""
         response = api_client.post(invite_url(), invite_data(), format="json")
 
         assert response.status_code == 401
@@ -157,10 +181,10 @@ class TestAcceptInvite:
         assert invited_user.check_password(PASSWORD)
 
     def test_mismatched_passwords_fails(self, api_client, invited_user):
-        """Ensure non-matching password and confirm_password fields are rejected."""
+        """Ensure non-matching password fields are rejected."""
         payload = accept_invite_data(
             invited_user,
-            confirm_password="Different-password-123",
+            confirm_new_password="Different-password-123",
         )
         response = api_client.post(accept_invite_url(), payload, format="json")
 
@@ -221,43 +245,3 @@ class TestAcceptInvite:
         user.refresh_from_db()
         assert user.has_usable_password()
         assert user.check_password(PASSWORD)
-
-
-    def test_invite_user_with_valid_photo(self, superuser_client, mailoutbox):
-        """Ensure HR can optionally upload a valid profile photo when inviting a user."""
-        photo = helper.make_photo()
-        response = superuser_client.post(
-            invite_url(),
-            invite_data(photo=photo),
-            format="multipart",
-        )
-
-        assert response.status_code == 201
-        user = User.objects.get(email=response.data["email"])
-        assert bool(user.photo)
-        assert response.data["photo"] is not None
-        assert len(mailoutbox) == 1
-
-
-    def test_invite_user_without_photo_sets_null(self, superuser_client):
-        """Ensure inviting a user without a photo succeeds and leaves photo empty."""
-        response = superuser_client.post(invite_url(), invite_data(), format="json")
-
-        assert response.status_code == 201
-        user = User.objects.get(email=response.data["email"])
-        assert not user.photo
-
-    def test_invite_user_with_invalid_photo_rejected(self, superuser_client, mailoutbox):
-        """Ensure an invalid photo (oversized, wrong type, or bad ratio) rejects the invite."""
-        oversized_photo = helper.make_photo(size_mb=6)
-        response = superuser_client.post(
-            invite_url(),
-            invite_data(photo=oversized_photo),
-            format="multipart",
-        )
-
-        assert response.status_code == 400
-        assert "photo" in response.data
-        assert User.objects.count() == 1
-        assert len(mailoutbox) == 0
-

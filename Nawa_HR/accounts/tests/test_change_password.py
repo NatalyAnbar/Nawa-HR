@@ -113,7 +113,7 @@ class TestChangePassword:
         response = api_client.put(
             change_password_url(),
             change_password_data(**overrides),
-            format="json",
+            format="json"
         )
 
         assert response.status_code == 400
