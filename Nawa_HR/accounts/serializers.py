@@ -7,7 +7,6 @@ from rest_framework import serializers
 
 from .models import User
 
-
 INVALID_INVITE_LINK = 'This invite link is invalid or has expired.'
 
 
@@ -24,7 +23,6 @@ class InviteUserSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'first_name': {'required': True, 'allow_blank': False},
             'last_name': {'required': True, 'allow_blank': False},
-            'last_name': {'required': False},
         }
 
     def validate_email(self, value):
