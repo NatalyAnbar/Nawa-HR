@@ -1,18 +1,20 @@
 import pytest
 from django.contrib.auth import get_user_model
-from django.urls import reverse
 
 User = get_user_model()
 
-EMAIL = 'test@nawa.com'
-PASSWORD = 'Test-password-123'
-FIRST_NAME = 'old-first-name'
-LAST_NAME = 'old-last-name'
+EMAIL = "test@nawa.com"
+PASSWORD = "Test-password-123"
+FIRST_NAME = "old-first-name"
+LAST_NAME = "old-last-name"
+
 
 @pytest.fixture
 def user():
     """An active user with a known email and password."""
-    return User.objects.create_user(email=EMAIL, password=PASSWORD, first_name=FIRST_NAME, last_name=LAST_NAME)
+    return User.objects.create_user(
+        email=EMAIL, password=PASSWORD, first_name=FIRST_NAME, last_name=LAST_NAME
+    )
 
 
 @pytest.fixture(autouse=True)

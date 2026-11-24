@@ -1,19 +1,21 @@
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 from django.db.models.functions import Lower
-import uuid
-from .manager import UserManager
+
+from core.models import PublicIdModel
+
 from . import photo_validators
+from .manager import UserManager
 
 
-class User(AbstractUser):
+class User(PublicIdModel, AbstractUser):
     """
     An account that can sign in, identified by email instead of a username.
 
     HR details live on `employees.Employee`, so an account doesn't have to be
     an employee (the developer, or an external auditor).
     """
-    id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4)
+
     username = None
 
     # Each account needs its own email: it's the login and where invites are sent
@@ -32,6 +34,8 @@ class User(AbstractUser):
         blank=True,
         validators=photo_validators.PHOTO_VALIDATORS,
     )
+
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.email

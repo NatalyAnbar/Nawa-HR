@@ -7,36 +7,27 @@ from rest_framework import serializers
 
 from .models import User
 
+INVALID_INVITE_LINK = "This invite link is invalid or has expired."
+INVALID_RESET_LINK = "This password reset link is invalid or has expired."
 
-INVALID_INVITE_LINK = 'This invite link is invalid or has expired.'
 
-
-class InviteUserSerializer(serializers.ModelSerializer):
-    """
-    Input for HR to invite a new employee.
-
-    HR enters the employee's email, name, and an optional profile photo.
-    """
+class UserSerializer(serializers.ModelSerializer):
+    """A person's account details: email, name and photo."""
 
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'photo']
+        fields = ["email", "first_name", "last_name", "photo"]
         extra_kwargs = {
-            'first_name': {'required': True, 'allow_blank': False},
-            'last_name': {'required': True, 'allow_blank': False},
-            'last_name': {'required': False},
+            "first_name": {"required": True, "allow_blank": False},
+            "last_name": {"required": True, "allow_blank": False},
         }
 
     def validate_email(self, value):
-        """Store emails in lowercase and reject ones already in use, in any letter case."""
+        """Store emails in lowercase and reject ones already in use."""
         email = value.lower()
         if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError('A user with this email already exists.')
+            raise serializers.ValidationError("A user with this email already exists.")
         return email
-
-
-INVALID_INVITE_LINK = "This invite link is invalid or has expired."
-INVALID_RESET_LINK = "This password reset link is invalid or has expired."
 
 
 class BasePasswordTokenSerializer(serializers.Serializer):
@@ -107,7 +98,6 @@ class ResetPasswordSerializer(BasePasswordTokenSerializer):
     """Let a user set a new password from a password reset link."""
 
     invalid_link_message = INVALID_RESET_LINK
-
 
 
 class MeSerializer(serializers.ModelSerializer):
@@ -186,8 +176,7 @@ class ForgetPasswordSerializer(serializers.Serializer):
         """Normalize the email to lowercase and ensure an active account exists."""
         email = value.strip().lower()
         if not User.objects.filter(email=email, is_active=True).exists():
-            raise serializers.ValidationError("No active account found with this email.")
+            raise serializers.ValidationError(
+                "No active account found with this email."
+            )
         return email
-
-
-

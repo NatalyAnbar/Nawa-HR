@@ -111,9 +111,7 @@ class TestChangePassword:
     ):
         """Ensure invalid old password, mismatched confirmation, or weak passwords fail."""
         response = api_client.put(
-            change_password_url(),
-            change_password_data(**overrides),
-            format="json"
+            change_password_url(), change_password_data(**overrides), format="json"
         )
 
         assert response.status_code == 400
