@@ -7,34 +7,28 @@ from rest_framework import serializers
 
 from .models import User
 
-INVALID_INVITE_LINK = 'This invite link is invalid or has expired.'
-
-
-class InviteUserSerializer(serializers.ModelSerializer):
-    """
-    Input for HR to invite a new employee.
-
-    HR enters the employee's email, name, and an optional profile photo.
-    """
-
-    class Meta:
-        model = User
-        fields = ['email', 'first_name', 'last_name', 'photo']
-        extra_kwargs = {
-            'first_name': {'required': True, 'allow_blank': False},
-            'last_name': {'required': True, 'allow_blank': False},
-        }
-
-    def validate_email(self, value):
-        """Store emails in lowercase and reject ones already in use, in any letter case."""
-        email = value.lower()
-        if User.objects.filter(email=email).exists():
-            raise serializers.ValidationError('A user with this email already exists.')
-        return email
-
 
 INVALID_INVITE_LINK = "This invite link is invalid or has expired."
 INVALID_RESET_LINK = "This password reset link is invalid or has expired."
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """A person's account details: email, name and photo."""
+
+    class Meta:
+        model = User
+        fields = ["email", "first_name", "last_name", "photo"]
+        extra_kwargs = {
+            "first_name": {"required": True, "allow_blank": False},
+            "last_name": {"required": True, "allow_blank": False},
+        }
+
+    def validate_email(self, value):
+        """Store emails in lowercase and reject ones already in use."""
+        email = value.lower()
+        if User.objects.filter(email=email).exists():
+            raise serializers.ValidationError("A user with this email already exists.")
+        return email
 
 
 class BasePasswordTokenSerializer(serializers.Serializer):

@@ -9,7 +9,6 @@ from .serializers import (
     AcceptInviteSerializer,
     ChangePasswordSerializer,
     ForgetPasswordSerializer,
-    InviteUserSerializer,
     MeSerializer,
     ResetPasswordSerializer,
 )
@@ -25,31 +24,6 @@ class LoginView(TokenObtainPairView):
     # Low on purpose, to slow down password guessing
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
-
-
-class InviteUserView(generics.GenericAPIView):
-    """
-    HR creates an account for a new employee and emails them an invite link.
-
-    There is no public sign-up: every account starts here.
-    """
-
-    serializer_class = InviteUserSerializer
-    # Replaced by IsHR once roles exist
-    permission_classes = [permissions.IsAdminUser]
-
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        # No password given, so the account gets an unusable one
-        user = User.objects.create_user(**serializer.validated_data)
-        emails.send_invite_mail(user)
-
-        return Response(
-            self.get_serializer(user).data,
-            status=status.HTTP_201_CREATED,
-        )
 
 
 class ForgetPasswordView(generics.GenericAPIView):
