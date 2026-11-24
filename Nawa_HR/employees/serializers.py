@@ -1,8 +1,7 @@
 from rest_framework import serializers
 
-from accounts.serializers import InviteUserSerializer
-
 from . import models
+from accounts.serializers import UserSerializer
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
@@ -17,7 +16,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
     # The public UUID, shown to clients as "id"
     id = serializers.UUIDField(source="public_id", read_only=True)
     # Read-only for now: creating the user and employee together comes next
-    user = InviteUserSerializer(read_only=True)
+    user = UserSerializer()
 
     class Meta:
         model = models.Employee
