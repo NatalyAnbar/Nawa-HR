@@ -1,4 +1,3 @@
-
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models.functions import Lower
@@ -16,6 +15,7 @@ class User(PublicIdModel, AbstractUser):
     HR details live on `employees.Employee`, so an account doesn't have to be
     an employee (the developer, or an external auditor).
     """
+
     username = None
 
     # Each account needs its own email: it's the login and where invites are sent
@@ -34,7 +34,7 @@ class User(PublicIdModel, AbstractUser):
         blank=True,
         validators=photo_validators.PHOTO_VALIDATORS,
     )
-    
+
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
