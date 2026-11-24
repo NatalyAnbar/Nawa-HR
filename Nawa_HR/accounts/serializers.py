@@ -7,7 +7,6 @@ from rest_framework import serializers
 
 from .models import User
 
-
 INVALID_INVITE_LINK = "This invite link is invalid or has expired."
 INVALID_RESET_LINK = "This password reset link is invalid or has expired."
 
@@ -101,7 +100,6 @@ class ResetPasswordSerializer(BasePasswordTokenSerializer):
     invalid_link_message = INVALID_RESET_LINK
 
 
-
 class MeSerializer(serializers.ModelSerializer):
     """
     Serializer for retrieving and updating the authenticated user's profile.
@@ -178,8 +176,7 @@ class ForgetPasswordSerializer(serializers.Serializer):
         """Normalize the email to lowercase and ensure an active account exists."""
         email = value.strip().lower()
         if not User.objects.filter(email=email, is_active=True).exists():
-            raise serializers.ValidationError("No active account found with this email.")
+            raise serializers.ValidationError(
+                "No active account found with this email."
+            )
         return email
-
-
-

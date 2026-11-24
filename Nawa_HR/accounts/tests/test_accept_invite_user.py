@@ -1,15 +1,18 @@
 import pytest
-from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.urls import reverse
 from rest_framework.test import APIClient
+
 from accounts import emails
+
 from . import helper
 
 pytestmark = pytest.mark.django_db
 
 User = get_user_model()
 
-PASSWORD = 'password-123'
+PASSWORD = "password-123"
+
 
 def accept_invite_url():
     """Return the URL for accepting an invitation and setting a password."""
@@ -24,6 +27,7 @@ def accept_invite_data(account, **extra_fields):
         "confirm_new_password": PASSWORD,
     } | extra_fields
 
+
 @pytest.fixture
 def superuser():
     """Create and return a superuser account."""
@@ -31,6 +35,7 @@ def superuser():
         email="superuser@gmail.com",
         password="password-123",
     )
+
 
 @pytest.fixture
 def invited_user():
@@ -40,6 +45,7 @@ def invited_user():
         first_name="Sara",
         last_name="Haddad",
     )
+
 
 @pytest.fixture
 def superuser_client(superuser):
@@ -62,7 +68,6 @@ class TestAcceptInvite:
         assert invited_user.has_usable_password()
         assert invited_user.check_password(PASSWORD)
 
-
     def test_mismatched_passwords_fails(self, api_client, invited_user):
         """Ensure non-matching password fields are rejected."""
         payload = accept_invite_data(
@@ -74,7 +79,6 @@ class TestAcceptInvite:
         assert response.status_code == 400
         invited_user.refresh_from_db()
         assert not invited_user.has_usable_password()
-
 
     def test_invalid_token_fails(self, api_client, invited_user):
         """Ensure an invalid or tampered token returns 400 Bad Request."""
