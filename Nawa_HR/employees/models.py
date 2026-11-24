@@ -35,11 +35,23 @@ class Employee(PublicIdModel):
         choices=Status.choices,
         default=Status.ACTIVE,
     )
+
     employment_type = models.CharField(
         max_length=20,
         choices=EmploymentType.choices,
         default=EmploymentType.EMPLOYEE,
     )
 
+    termination_date = models.DateField(null=True, blank=True)
+
     def __str__(self):
         return self.user.email
+
+    class Meta:
+        constraints = [
+            # An employee can't leave before they were hired (same day is allowed)
+            models.CheckConstraint(
+                condition=models.Q(hire_date__lt=models.F("termination_date")),
+                name="employee_hired_before_terminated",
+            )
+        ]
