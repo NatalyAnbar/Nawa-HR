@@ -61,3 +61,25 @@ class EmployeeViewSet(viewsets.ModelViewSet):
         return Response(
             serializers.EmployeeSerializer(employee).data, status=status.HTTP_200_OK
         )
+
+
+class RoleAssignmentViewSet(viewsets.ModelViewSet):
+    """
+    HR records the roles employees hold over time.
+
+    New roles are only added after an employee's latest one, so an
+    employee's history never has overlapping periods. Assignments can't
+    be edited or deleted: they are the employee's history.
+    """
+
+    # Every relation the serializer shows, fetched in the same query (avoids N+1)
+    queryset = models.RoleAssignment.objects.select_related(
+        "employee", "role__department"
+    )
+    serializer_class = serializers.RoleAssignmentSerializer
+    # Replaced by IsHR once roles exist
+    permission_classes = [permissions.IsAdminUser]
+    # Assignments are addressed by their public UUID, never the internal id
+    lookup_field = "public_id"
+    # No PATCH: the overlap check only covers new assignments. No DELETE: history is kept.
+    http_method_names = ["get", "post", "head", "options"]
