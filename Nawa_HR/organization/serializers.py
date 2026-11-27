@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from core.serializers import PublicIdSerializer
 
@@ -30,3 +31,10 @@ class RoleSerializer(PublicIdSerializer):
     class Meta:
         model = models.Role
         fields = ["id", "name", "department", "department_name", "access"]
+        validators = [
+            UniqueTogetherValidator(
+                queryset=models.Role.objects.all(),
+                fields=["department", "name"],
+                message="This department already has a role with this name.",
+            ),
+        ]
