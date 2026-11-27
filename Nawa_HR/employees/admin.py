@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Employee
+from .models import Employee, RoleAssignment
 
 
 @admin.register(Employee)
@@ -17,3 +17,8 @@ class EmployeeAdmin(admin.ModelAdmin):
     readonly_fields = ["public_id"]
     # Search for the user instead of loading every account into a dropdown
     autocomplete_fields = ["user"]
+
+
+@admin.register(RoleAssignment)
+class RoleAssignmentAdmin(admin.ModelAdmin):
+    fields = ["employee", "department", "started_at", "ended_at"]
